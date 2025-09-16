@@ -1,7 +1,7 @@
 pipeline {
   agent any
   tools {
-    nodejs 'nodejs'  // This matches the NodeJS configuration in Jenkins
+    nodejs 'Node18'  // Changed to match your Jenkins configuration
   }
   triggers { pollSCM('H/5 * * * *') }
 
