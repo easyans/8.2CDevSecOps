@@ -1,5 +1,8 @@
 pipeline {
   agent any
+  tools {
+    nodejs 'nodejs'  // This matches the NodeJS configuration in Jenkins
+  }
   triggers { pollSCM('H/5 * * * *') }
 
   environment {
