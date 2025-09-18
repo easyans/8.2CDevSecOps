@@ -1,13 +1,13 @@
 pipeline {
   agent any
   tools {
-    nodejs 'Node18'  // Changed to match your Jenkins configuration
+    nodejs 'nodejs'
   }
   triggers { pollSCM('H/5 * * * *') }
 
   environment {
     REPO_URL     = 'https://github.com/easyans/8.2CDevSecOps.git'
-    NOTIFY_EMAIL = 'ar0829@srmist.edu.in'
+    NOTIFY_EMAIL = 'aakashraj232002@gmail.com'
   }
 
   stages {
@@ -26,15 +26,19 @@ pipeline {
     stage('Run Tests') {
       steps {
         sh 'npm test || true'
-        script {
+      }
+      post {
+        always {
           emailext(
             to: "${env.NOTIFY_EMAIL}",
-            subject: "SIT753 8.1C • Test stages • ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """Stage: Run Tests
+            subject: "SIT753 8.1C • Test Results • ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """Pipeline Stage: Run Tests
+Status: ${currentBuild.currentResult}
 Job: ${env.JOB_NAME}
 Build: ${env.BUILD_URL}
-Result so far: ${currentBuild.currentResult}""",
+Build Duration: ${currentBuild.durationString}""",
             attachLog: true,
+            attachmentsPattern: '**/*.log',
             mimeType: 'text/plain'
           )
         }
@@ -49,26 +53,65 @@ Result so far: ${currentBuild.currentResult}""",
 
     stage('NPM Audit (Security Scan)') {
       steps {
-        sh 'npm audit || true'
+        sh 'npm audit --json > npm-audit-report.json || true'
         script {
+          sh 'npx snyk test --json > snyk-report.json || true'
+        }
+      }
+      post {
+        always {
           emailext(
             to: "${env.NOTIFY_EMAIL}",
-            subject: "SIT753 8.1C • Security scans • ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """Stage: NPM Audit (Security Scan)
+            subject: "SIT753 8.1C • Security Scan Results • ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """Pipeline Stage: NPM Audit (Security Scan)
+Status: ${currentBuild.currentResult}
 Job: ${env.JOB_NAME}
 Build: ${env.BUILD_URL}
-Result so far: ${currentBuild.currentResult}""",
+Vulnerabilities: Check attached reports for details""",
             attachLog: true,
+            attachmentsPattern: '**/*-report.json, **/*.log',
             mimeType: 'text/plain'
           )
         }
+      }
+    }
+
+    stage('Code Quality Scan') {
+      steps {
+        sh 'npx eslint . --format json > eslint-report.json || true'
+        sh 'npx prettier --check . || true'
       }
     }
   }
 
   post {
     always {
-      echo 'Pipeline finished successfully (see emails for stage results with logs attached).'
+      echo 'Pipeline completed. Email notifications sent for test and security stages.'
+    }
+    failure {
+      emailext(
+        to: "${env.NOTIFY_EMAIL}",
+        subject: "🚨 PIPELINE FAILED • ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        body: """Pipeline Status: FAILED
+Job: ${env.JOB_NAME}
+Build: ${env.BUILD_URL}
+Failed Stage: ${currentBuild.currentResult}
+Check Jenkins for details and logs""",
+        attachLog: true,
+        attachmentsPattern: '**/*.log'
+      )
+    }
+    success {
+      emailext(
+        to: "${env.NOTIFY_EMAIL}",
+        subject: "✅ PIPELINE IS SUCCESS • ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        body: """Pipeline Status: SUCCESS
+Job: ${env.JOB_NAME}
+Build: ${env.BUILD_URL}
+Build Duration: ${currentBuild.durationString}
+All stages completed successfully""",
+        attachLog: false
+      )
     }
   }
 }
