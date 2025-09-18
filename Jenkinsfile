@@ -7,7 +7,7 @@ pipeline {
 
   environment {
     REPO_URL     = 'https://github.com/easyans/8.2CDevSecOps.git'
-    NOTIFY_EMAIL = 'aakashraj232002@gmail.com'
+    NOTIFY_EMAIL = 'ar0829@srmist.edu.in'
   }
 
   stages {
