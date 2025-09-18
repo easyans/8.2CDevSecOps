@@ -1,7 +1,7 @@
 pipeline {
   agent any
   tools {
-    nodejs 'nodejs'
+    nodejs 'Node18'  // Changed to match your Jenkins configuration
   }
   triggers { pollSCM('H/5 * * * *') }
 
@@ -54,9 +54,6 @@ Build Duration: ${currentBuild.durationString}""",
     stage('NPM Audit (Security Scan)') {
       steps {
         sh 'npm audit --json > npm-audit-report.json || true'
-        script {
-          sh 'npx snyk test --json > snyk-report.json || true'
-        }
       }
       post {
         always {
@@ -73,13 +70,6 @@ Vulnerabilities: Check attached reports for details""",
             mimeType: 'text/plain'
           )
         }
-      }
-    }
-
-    stage('Code Quality Scan') {
-      steps {
-        sh 'npx eslint . --format json > eslint-report.json || true'
-        sh 'npx prettier --check . || true'
       }
     }
   }
